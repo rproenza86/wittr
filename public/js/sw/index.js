@@ -21,13 +21,13 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
     // white list example
-    const cacheWhitelist = ['pages-cache-v1', 'blog-posts-cache-v1', CACHE_NAME];
+    const cacheWhitelist = ['wittr-pages-cache-v1', 'wittr-blog-posts-cache-v1', CACHE_NAME];
 
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.filter(cacheName => {
-                    return cacheName.startsWith('wittr-') && cacheWhitelist.indexOf(cacheName) === -1;
+                    return cacheName.startsWith('wittr-') && cacheWhitelist.indexOf(CACHE_NAME) === -1; // Note that the "CACHE_NAME" is the name of the current cache
                 }).map(cacheName => {
                     return caches.delete(cacheName);
                 })
