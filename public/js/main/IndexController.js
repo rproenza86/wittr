@@ -46,15 +46,13 @@ IndexController.prototype._registerServiceWorker = function() {
                 return;
             }
 
-            const installing = registration.installing;
-
-            if (installing) {
-                indexController._onSwInstallingHandler(installing);
+            if (registration.installing) {
+                indexController._onSwInstallingHandler(registration.installing);
                 return;
             }
 
             registration.addEventListener('updatefound', function() {
-                indexController._onSwInstallingHandler(installing);
+                indexController._onSwInstallingHandler(registration.installing);
             });
         });
 
@@ -90,7 +88,7 @@ IndexController.prototype._showCachedMessages = function() {
 };
 
 IndexController.prototype._onSwInstallingHandler = function(worker) {
-    const indexController = this;
+    var indexController = this;
     worker.addEventListener('statechange', function() {
         if (worker.state == 'installed') {
             indexController._updateReady(worker);

@@ -20,7 +20,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-    // white list example
+    // white list examples
     const cacheWhitelist = ['wittr-pages-cache-v1', 'wittr-blog-posts-cache-v1', CACHE_NAME];
 
     event.waitUntil(
@@ -59,4 +59,10 @@ self.addEventListener('fetch', event => {
             });
         })
     );
+});
+
+self.addEventListener('message', event => {
+    // Perform install steps
+    if (event.data.action === 'skipWaiting')
+        self.skipWaiting();
 });
