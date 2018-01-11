@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wittr-static-v1';
+const CACHE_NAME = 'wittr-static-v2';
 const urlsToCache = [
     '/',
     'js/main.js',
@@ -19,9 +19,20 @@ self.addEventListener('install', event => {
     );
 });
 
-self.addEventListener('activate', function(event) {
+self.addEventListener('activate', event => {
+    // white list example
+    const cacheWhitelist = ['pages-cache-v1', 'blog-posts-cache-v1', CACHE_NAME];
+
     event.waitUntil(
-        // TODO: remove the old cache
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.filter(cacheName => {
+                    return cacheName.startsWith('wittr-') && cacheWhitelist.indexOf(cacheName) === -1;
+                }).map(cacheName => {
+                    return caches.delete(cacheName);
+                })
+            );
+        })
     );
 });
 

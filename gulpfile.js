@@ -49,8 +49,7 @@ function createBundle(src) {
     var b = watchify(browserify(opts));
 
     b.transform(babelify.configure({
-        stage: 1,
-        presets: ["es2015"]
+        stage: 1
     }));
 
     b.transform(hbsfy);
