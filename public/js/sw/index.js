@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wittr-static-v2';
+const CACHE_NAME = 'wittr-static-v3';
 const urlsToCache = [
     '/',
     'js/main.js',

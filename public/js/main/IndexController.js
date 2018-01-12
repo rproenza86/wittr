@@ -78,12 +78,13 @@ IndexController.prototype._showCachedMessages = function() {
         // posts from IDB
         if (!db || indexController._postsView.showingPosts()) return;
 
-        // TODO: get all of the wittr message objects from indexeddb,
-        // then pass them to:
-        // indexController._postsView.addPosts(messages)
-        // in order of date, starting with the latest.
-        // Remember to return a promise that does all this,
-        // so the websocket isn't opened until you're done!
+        const tx = db.transaction('wittr');
+        const wittrStore = tx.objectStore('wittr');
+        const dateIndex = wittrStore.index('by-date');
+
+        return dateIndex.getAll().then(function(messages) {
+            indexController._postsView.addPosts(messages.reverse());
+        });
     });
 };
 
