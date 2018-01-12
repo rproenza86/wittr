@@ -3,15 +3,15 @@ import idb from 'idb';
 var dbPromise = idb.open('test-db', 4, function(upgradeDb) {
     switch (upgradeDb.oldVersion) {
         case 0:
-            var keyValStore = upgradeDb.createObjectStore('keyval');
+            const keyValStore = upgradeDb.createObjectStore('keyval');
             keyValStore.put("world", "hello");
         case 1:
             upgradeDb.createObjectStore('people', { keyPath: 'name' });
         case 2:
-            var peopleStore = upgradeDb.transaction.objectStore('people');
+            let peopleStore = upgradeDb.transaction.objectStore('people');
             peopleStore.createIndex('animal', 'favoriteAnimal'); // index creation to queryfy the idb people table by favoriteAnimal
         case 3:
-            var peopleStore = upgradeDb.transaction.objectStore('people');
+            peopleStore = upgradeDb.transaction.objectStore('people');
             peopleStore.createIndex('age', 'age'); // index creation to queryfy the idb people table by age
     }
 });
@@ -119,4 +119,28 @@ dbPromise.then(function(db) {
     return ageIndex.getAll();
 }).then(function(listObject) {
     console.log("People age's sorted: ", listObject);
+});
+
+// iterating in a sorted by age people db records list 
+dbPromise.then(function(db) {
+    const tx = db.transaction('people', 'readwrite');
+    const peopleStore = tx.objectStore('people');
+    const ageIndex = peopleStore.index('age');
+
+    return ageIndex.openCursor();
+}).then(function logPerson(cursor) {
+    if (!cursor) return; // Empty case
+    console.log("Cursored at", cursor.value.name);
+    /**
+     * Ex. about how to delete and update a record
+     * cursor.delete() to delete this entry
+     * cursor.update(newRecord) to change the value, or
+     */
+    return cursor.continue().then(logPerson);
+    /**
+     * Also we could do things like:
+     * return cursor.advance(2); to skip 2 records
+     */
+}).then(function() {
+    console.log("Done cursoring");
 });
