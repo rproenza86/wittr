@@ -1,15 +1,18 @@
 import idb from 'idb';
 
-var dbPromise = idb.open('test-db', 3, function(upgradeDb) {
+var dbPromise = idb.open('test-db', 4, function(upgradeDb) {
     switch (upgradeDb.oldVersion) {
         case 0:
-            const keyValStore = upgradeDb.createObjectStore('keyval');
+            var keyValStore = upgradeDb.createObjectStore('keyval');
             keyValStore.put("world", "hello");
         case 1:
             upgradeDb.createObjectStore('people', { keyPath: 'name' });
         case 2:
-            const peopleStore = upgradeDb.transaction.objectStore('people');
-            peopleStore.createIndex('animal', 'favoriteAnimal'); // index creation t queryfy the idb people table
+            var peopleStore = upgradeDb.transaction.objectStore('people');
+            peopleStore.createIndex('animal', 'favoriteAnimal'); // index creation to queryfy the idb people table by favoriteAnimal
+        case 3:
+            var peopleStore = upgradeDb.transaction.objectStore('people');
+            peopleStore.createIndex('age', 'age'); // index creation to queryfy the idb people table by age
     }
 });
 
@@ -105,4 +108,15 @@ dbPromise.then(function(db) {
     return animalIndex.getAll('tiger');
 }).then(function(listObject) {
     console.log('People tiger lovers:', listObject);
+});
+
+// fetch sorted people db records by age
+dbPromise.then(function(db) {
+    const tx = db.transaction('people', 'readwrite');
+    const peopleStore = tx.objectStore('people');
+    const ageIndex = peopleStore.index('age');
+
+    return ageIndex.getAll();
+}).then(function(listObject) {
+    console.log("People age's sorted: ", listObject);
 });
