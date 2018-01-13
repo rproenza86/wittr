@@ -78,9 +78,14 @@ IndexController.prototype._showCachedMessages = function() {
         // posts from IDB
         if (!db || indexController._postsView.showingPosts()) return;
 
-        const tx = db.transaction('wittr');
-        const wittrStore = tx.objectStore('wittr');
-        const dateIndex = wittrStore.index('by-date');
+        // const tx = db.transaction('wittr');
+        // const wittrStore = tx.objectStore('wittr');
+        // const dateIndex = wittrStore.index('by-date');
+
+        // Refactored due the next error: https://files.slack.com/files-pri/T8700H3B7-F8S8U1N7M/image.png
+
+        const dateIndex = db.transaction('wittrs')
+            .objectStore('wittrs').index('by-date');
 
         return dateIndex.getAll().then(function(messages) {
             indexController._postsView.addPosts(messages.reverse());
