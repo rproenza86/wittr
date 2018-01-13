@@ -117,11 +117,7 @@ function serveAvatar(request) {
                     });
                 }
 
-                if (response) {
-                    fetchAndCache();
-                    return response;
-                }
-                return fetchAndCache();
+                return response || fetchAndCache();
             });
     });
 }
