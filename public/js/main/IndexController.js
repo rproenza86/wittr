@@ -165,6 +165,21 @@ IndexController.prototype._onSocketMessage = function(data) {
         messages.forEach(function(message) {
             store.put(message);
         });
+
+        /**
+         * Keep the IDB limit store to 30 items.
+         * The "openCursor(null, "prev")" causes the cursor to be opened at the end of the source, "next" cause the opposite.
+         * Ref: https://developer.mozilla.org/en-US/docs/Web/API/IDBCursor/direction
+         */
+        store.index('by-date').openCursor(null, "prev").then(function(cursor) {
+            return cursor.advance(30);
+        }).then(function cleanDB(cursor) {
+            if (!cursor) return;
+            cursor.delete();
+            return cursor.continue().then(cleanDB);
+        }).then(function() {
+            console.log("IDB clean up done!");
+        });
     });
 
     this._postsView.addPosts(messages);
