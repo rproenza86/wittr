@@ -216,7 +216,7 @@ IndexController.prototype._cleanImageCache = function() {
             return caches.open('wittr-content-imgs').then(function(cache) {
                 cache.keys().then(function(keys) {
                     keys.forEach(function(request) {
-                        const requestPhotoUrl = `photos${request.url.split('photos')[1]}`; // other way to get the photoURL is 'new URL(request.url).pathname', this solution scale better
+                        const requestPhotoUrl = new URL(request.url).pathname; // other way to get the photoURL is '`photos${request.url.split('photos')[1]}`', this solution scale better
                         if (!msgPhotosUrls.includes(requestPhotoUrl))
                             cache.delete(request);
                     });
