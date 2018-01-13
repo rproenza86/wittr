@@ -147,3 +147,7 @@ gulp.task('server', function() {
 gulp.task('serve', function(callback) {
     runSequence('clean', ['css', 'js:browser', 'templates:server', 'js:server', 'copy'], ['server', 'watch'], callback);
 });
+
+gulp.task('start', function(callback) {
+    runSequence('clean', ['css', 'js:browser', 'templates:server', 'js:server', 'copy'], ['watch'], callback);
+});

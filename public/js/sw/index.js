@@ -1,6 +1,10 @@
-const CACHE_NAME = 'wittr-static-v2';
+const CACHE_STATIC_ASSETS = 'wittr-static-v5';
+const CACHE_POSTS_IMAGES = 'wittr-content-imgs';
+
+const cacheWhitelist = [CACHE_POSTS_IMAGES, CACHE_STATIC_ASSETS];
+
 const urlsToCache = [
-    '/',
+    '/skeleton',
     'js/main.js',
     'css/main.css',
     'imgs/icon.png',
@@ -11,7 +15,7 @@ const urlsToCache = [
 self.addEventListener('install', event => {
     // Perform install steps
     event.waitUntil(
-        caches.open(CACHE_NAME)
+        caches.open(CACHE_STATIC_ASSETS)
         .then(cache => {
             console.info('Opened cache');
             return cache.addAll(urlsToCache);
@@ -20,14 +24,11 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-    // white list examples
-    const cacheWhitelist = ['wittr-pages-cache-v1', 'wittr-blog-posts-cache-v1', CACHE_NAME];
-
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.filter(cacheName => {
-                    return cacheName.startsWith('wittr-') && cacheWhitelist.indexOf(CACHE_NAME) === -1; // Note that the "CACHE_NAME" is the name of the current cache
+                    return cacheName.startsWith('wittr-') && !cacheWhitelist.includes(cacheName);
                 }).map(cacheName => {
                     return caches.delete(cacheName);
                 })
@@ -40,6 +41,23 @@ self.addEventListener('fetch', event => {
     // Let the browser do its default thing
     // for non-GET requests.
     if (event.request.method != 'GET') return;
+
+    const requestUrl = new URL(event.request.url);
+
+    if (requestUrl.origin === location.origin) {
+        if (requestUrl.pathname === '/') {
+            event.respondWith(caches.match('/skeleton'));
+            return;
+        }
+        if (requestUrl.pathname.startsWith('/photos/')) {
+            event.respondWith(servePhoto(event.request));
+            return;
+        }
+        if (requestUrl.pathname.startsWith('/avatars/')) {
+            event.respondWith(serveAvatar(event.request));
+            return;
+        }
+    }
 
     event.respondWith(
         caches.match(event.request)
@@ -60,6 +78,49 @@ self.addEventListener('fetch', event => {
         })
     );
 });
+
+function servePhoto(request) {
+    const storageUrl = request.url.replace(/-\d+px\.jpg$/, '');
+
+    return caches.open(CACHE_POSTS_IMAGES).then(function(cache) {
+        return cache.match(storageUrl)
+            .then(function(response) {
+                if (response) {
+                    return response;
+                }
+                return fetch(request).then(function(networkResponse) {
+                    console.info('Opened photos cache');
+                    cache.put(storageUrl, networkResponse.clone());
+                    return networkResponse;
+                }).catch(err => {
+                    console.error(err);
+                    return new Response("Resource photo request failed");
+                });
+            });
+    });
+}
+
+function serveAvatar(request) {
+    const storageUrl = request.url.replace(/-\dx\.jpg$/, '');
+
+    return caches.open(CACHE_POSTS_IMAGES).then(function(cache) {
+        return cache.match(storageUrl)
+            .then(function(response) {
+                function fetchAndCache() {
+                    return fetch(request).then(function(networkResponse) {
+                        console.info('Opened photos cache');
+                        cache.put(storageUrl, networkResponse.clone());
+                        return networkResponse;
+                    }).catch(err => {
+                        console.error(err);
+                        return new Response("Resource photo request failed");
+                    });
+                }
+
+                return response || fetchAndCache();
+            });
+    });
+}
 
 self.addEventListener('message', event => {
     // Perform install steps

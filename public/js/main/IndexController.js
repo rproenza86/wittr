@@ -24,8 +24,13 @@ export default function IndexController(container) {
     this._lostConnectionToast = null;
     this._dbPromise = openDatabase();
     this._registerServiceWorker();
+    this._cleanImageCache();
 
     var indexController = this;
+
+    setInterval(function() {
+        indexController._cleanImageCache();
+    }, 1000 * 60 * 5);
 
     this._showCachedMessages().then(function() {
         indexController._openSocket();
@@ -78,10 +83,16 @@ IndexController.prototype._showCachedMessages = function() {
         // posts from IDB
         if (!db || indexController._postsView.showingPosts()) return;
 
-        const index = db.transaction('wittrs')
+        // const tx = db.transaction('wittr');
+        // const wittrStore = tx.objectStore('wittr');
+        // const dateIndex = wittrStore.index('by-date');
+
+        // Refactored due the next error: https://files.slack.com/files-pri/T8700H3B7-F8S8U1N7M/image.png
+
+        const dateIndex = db.transaction('wittrs')
             .objectStore('wittrs').index('by-date');
 
-        return index.getAll().then(function(messages) {
+        return dateIndex.getAll().then(function(messages) {
             indexController._postsView.addPosts(messages.reverse());
         });
     });
@@ -164,7 +175,53 @@ IndexController.prototype._onSocketMessage = function(data) {
         messages.forEach(function(message) {
             store.put(message);
         });
+
+        /**
+         * Keep the IDB limit store to 30 items.
+         * The "openCursor(null, "prev")" causes the cursor to be opened at the end of the source, "next" cause the opposite.
+         * Ref: https://developer.mozilla.org/en-US/docs/Web/API/IDBCursor/direction
+         */
+        store.index('by-date').openCursor(null, "prev").then(function(cursor) {
+            return cursor.advance(30);
+        }).then(function cleanDB(cursor) {
+            if (!cursor) return;
+            cursor.delete();
+            return cursor.continue().then(cleanDB);
+        }).then(function() {
+            console.log("IDB clean up done!");
+        });
     });
 
     this._postsView.addPosts(messages);
+};
+
+IndexController.prototype._cleanImageCache = function() {
+    return this._dbPromise.then(function(db) {
+        if (!db) return;
+
+        const tx = db.transaction('wittrs', 'readonly');
+        const store = tx.objectStore('wittrs');
+
+        return store.getAll().then(function(messages) {
+            let msgPhotosUrls = [];
+            messages.map(msg => {
+                if (msg.photo) {
+                    msgPhotosUrls.push(msg.photo);
+                }
+                if (msg.avatar) {
+                    msgPhotosUrls.push(msg.avatar);
+                }
+            });
+
+            return caches.open('wittr-content-imgs').then(function(cache) {
+                cache.keys().then(function(keys) {
+                    keys.forEach(function(request) {
+                        const requestPhotoUrl = new URL(request.url).pathname; // other way to get the photoURL is '`photos${request.url.split('photos')[1]}`', this solution scale better
+                        if (!msgPhotosUrls.includes(requestPhotoUrl))
+                            cache.delete(request);
+                    });
+                });
+            });
+        });
+    });
 };
