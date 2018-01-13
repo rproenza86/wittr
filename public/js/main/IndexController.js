@@ -24,8 +24,13 @@ export default function IndexController(container) {
     this._lostConnectionToast = null;
     this._dbPromise = openDatabase();
     this._registerServiceWorker();
+    this._cleanImageCache();
 
     var indexController = this;
+
+    setInterval(function() {
+        indexController._cleanImageCache();
+    }, 1000 * 60 * 5);
 
     this._showCachedMessages().then(function() {
         indexController._openSocket();
@@ -188,4 +193,28 @@ IndexController.prototype._onSocketMessage = function(data) {
     });
 
     this._postsView.addPosts(messages);
+};
+
+IndexController.prototype._cleanImageCache = function() {
+    return this._dbPromise.then(function(db) {
+        if (!db) return;
+
+        const tx = db.transaction('wittrs', 'readonly');
+        const store = tx.objectStore('wittrs');
+
+        return store.getAll().then(function(messages) {
+            let msgPhotosUrls = [];
+            messages.map(msg => msg.photo && msgPhotosUrls.push(msg.photo));
+
+            return caches.open('wittr-content-imgs').then(function(cache) {
+                cache.keys().then(function(keys) {
+                    keys.forEach(function(request) {
+                        const requestPhoto = `photos${request.url.split('photos')[1]}`;
+                        if (!msgPhotosUrls.includes(requestPhoto))
+                            cache.delete(request);
+                    });
+                });
+            });
+        });
+    });
 };
