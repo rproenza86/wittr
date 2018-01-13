@@ -70,7 +70,7 @@ IndexController.prototype._registerServiceWorker = function() {
 };
 
 IndexController.prototype._showCachedMessages = function() {
-    var indexController = this;
+    const indexController = this;
 
     return this._dbPromise.then(function(db) {
         // if we're already showing posts, eg shift-refresh
@@ -78,12 +78,12 @@ IndexController.prototype._showCachedMessages = function() {
         // posts from IDB
         if (!db || indexController._postsView.showingPosts()) return;
 
-        // TODO: get all of the wittr message objects from indexeddb,
-        // then pass them to:
-        // indexController._postsView.addPosts(messages)
-        // in order of date, starting with the latest.
-        // Remember to return a promise that does all this,
-        // so the websocket isn't opened until you're done!
+        const index = db.transaction('wittrs')
+            .objectStore('wittrs').index('by-date');
+
+        return index.getAll().then(function(messages) {
+            indexController._postsView.addPosts(messages.reverse());
+        });
     });
 };
 
