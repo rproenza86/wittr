@@ -53,6 +53,10 @@ self.addEventListener('fetch', event => {
             event.respondWith(servePhoto(event.request));
             return;
         }
+        if (requestUrl.pathname.startsWith('/avatars/')) {
+            event.respondWith(serveAvatar(event.request));
+            return;
+        }
     }
 
     event.respondWith(
@@ -92,6 +96,32 @@ function servePhoto(request) {
                     console.error(err);
                     return new Response("Resource photo request failed");
                 });
+            });
+    });
+}
+
+function serveAvatar(request) {
+    const storageUrl = request.url.replace(/-\dx\.jpg$/, '');
+
+    return caches.open(CACHE_POSTS_IMAGES).then(function(cache) {
+        return cache.match(storageUrl)
+            .then(function(response) {
+                function fetchAndCache() {
+                    return fetch(request).then(function(networkResponse) {
+                        console.info('Opened photos cache');
+                        cache.put(storageUrl, networkResponse.clone());
+                        return networkResponse;
+                    }).catch(err => {
+                        console.error(err);
+                        return new Response("Resource photo request failed");
+                    });
+                }
+
+                if (response) {
+                    fetchAndCache();
+                    return response;
+                }
+                return fetchAndCache();
             });
     });
 }

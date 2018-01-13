@@ -204,13 +204,20 @@ IndexController.prototype._cleanImageCache = function() {
 
         return store.getAll().then(function(messages) {
             let msgPhotosUrls = [];
-            messages.map(msg => msg.photo && msgPhotosUrls.push(msg.photo));
+            messages.map(msg => {
+                if (msg.photo) {
+                    msgPhotosUrls.push(msg.photo);
+                }
+                if (msg.avatar) {
+                    msgPhotosUrls.push(msg.avatar);
+                }
+            });
 
             return caches.open('wittr-content-imgs').then(function(cache) {
                 cache.keys().then(function(keys) {
                     keys.forEach(function(request) {
-                        const requestPhoto = `photos${request.url.split('photos')[1]}`;
-                        if (!msgPhotosUrls.includes(requestPhoto))
+                        const requestPhotoUrl = `photos${request.url.split('photos')[1]}`; // other way to get the photoURL is 'new URL(request.url).pathname', this solution scale better
+                        if (!msgPhotosUrls.includes(requestPhotoUrl))
                             cache.delete(request);
                     });
                 });
