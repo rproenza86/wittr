@@ -1,9 +1,25 @@
 import idb from 'idb';
 
-var dbPromise = idb.open('test-db', 4, function(upgradeDb) {
+/*
+Basic pattern
+
+The basic pattern that IndexedDB encourages is the following:
+
+1- Open a database.
+2- Create an object store in the database. 
+3- Start a transaction and make a request to do some database operation, like adding or retrieving data.
+4- Wait for the operation to complete by listening to the right kind of DOM event.
+5- Do something with the results (which can be found on the request object).
+
+*/
+
+// The second param of the open function is the db version. It's relevant because in the open function it will be executed the db upgrade function, this is where we can create new
+// objects(tables) and index. To keep the database integrity, each time when is required one of these operations the good practice to avoid errors
+// is to bump the db version and react accordingly using the below snippet of code.
+var dbPromise = idb.open('test-db', 4, function(upgradeDb) { // 1- Open a database.
     switch (upgradeDb.oldVersion) {
         case 0:
-            const keyValStore = upgradeDb.createObjectStore('keyval');
+            const keyValStore = upgradeDb.createObjectStore('keyval'); // 2- Create an object store in the database. 
             keyValStore.put("world", "hello");
         case 1:
             upgradeDb.createObjectStore('people', { keyPath: 'name' });
@@ -18,11 +34,11 @@ var dbPromise = idb.open('test-db', 4, function(upgradeDb) {
 
 // read "hello" in "keyval"
 dbPromise.then(function(db) {
-    var tx = db.transaction('keyval');
+    var tx = db.transaction('keyval'); // 3- Start a transaction and make a request to do some database operation, like adding or retrieving data.
     var keyValStore = tx.objectStore('keyval');
     return keyValStore.get('hello');
-}).then(function(val) {
-    console.log('The value of "hello" is:', val);
+}).then(function(val) { // 4- Wait for the operation to complete by listening to the right kind of DOM event.
+    console.log('The value of "hello" is:', val); // 5- Do something with the results (which can be found on the request object).
 });
 
 // set "foo" to be "bar" in "keyval"
@@ -144,3 +160,7 @@ dbPromise.then(function(db) {
 }).then(function() {
     console.log("Done cursoring");
 });
+
+// Reference:
+// https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB
+// https://github.com/jakearchibald/idb
